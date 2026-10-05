@@ -176,7 +176,7 @@ npx expo start --dev-client
 ## 🌐 API de notificações
 
 - **Tecnologia:** Node.js 22 + Express 5 + TypeScript + Firebase Admin SDK.
-- **URL pública:** `https://SEU-SERVICO.onrender.com` ⚠️ *(substituir pela URL real após o deploy)*
+- **URL pública:** **https://cpchat.onrender.com** (health check: <https://cpchat.onrender.com/health>)
 
 ### Endpoints
 
@@ -191,7 +191,7 @@ npx expo start --dev-client
 Verificar disponibilidade:
 
 ```bash
-curl https://SEU-SERVICO.onrender.com/health
+curl https://cpchat.onrender.com/health
 ```
 
 ### Variáveis de ambiente (somente os nomes — valores apenas no Render)
@@ -200,11 +200,26 @@ curl https://SEU-SERVICO.onrender.com/health
 
 ### Publicar no Render
 
-1. Suba o repositório no GitHub.
-2. Render → **New → Blueprint** → selecione o repositório (usa [`render.yaml`](render.yaml): `rootDir: server`, build `npm ci && npm run build`, start `npm start`, health check `/health`).
-3. Preencha as variáveis secretas no painel (cole a `private_key` inteira, com `\n`).
-4. Teste `GET /health` e coloque a URL em `EXPO_PUBLIC_API_URL` (arquivo `.env` do app / variáveis do EAS) antes de gerar o build.
-5. **Disponibilidade:** o plano free hiberna após 15 min sem tráfego. Para a correção, configure um monitor gratuito (ex.: UptimeRobot ou cron-job.org) chamando `/health` a cada 10 min — assim a API responde imediatamente. O app também tolera até 60 s de "cold start".
+A API está publicada como **Web Service** no Render (plano Free, região Virginia/US East), com deploy automático a cada push na branch `master`.
+
+1. Render → **New → Web Service** → conecte o repositório no GitHub.
+2. Configuração:
+
+   | Campo | Valor |
+   |---|---|
+   | Language | Node |
+   | Branch | `master` |
+   | Root Directory | `server` |
+   | Build Command | `npm ci && npm run build` |
+   | Start Command | `npm start` |
+   | Health Check Path | `/health` |
+   | Instance Type | Free |
+
+3. **Environment Variables:** `NODE_VERSION=22` e as variáveis secretas listadas acima. A `FIREBASE_PRIVATE_KEY` é colada inteira (de `-----BEGIN PRIVATE KEY-----` a `-----END PRIVATE KEY-----`).
+4. Após o deploy, teste `GET /health`. A URL pública vai em `EXPO_PUBLIC_API_URL` (`.env` para desenvolvimento e `eas.json` para os builds na nuvem).
+5. **Disponibilidade:** o plano Free hiberna após 15 min sem tráfego. Um monitor do UptimeRobot chama `/health` a cada 5 min para manter a API sempre ativa durante a correção. O app também tolera até 60 s de "cold start".
+
+> Alternativa: o arquivo [`render.yaml`](render.yaml) permite criar o mesmo serviço via **New → Blueprint**.
 
 ### Rodar localmente (opcional, só para desenvolvimento)
 
