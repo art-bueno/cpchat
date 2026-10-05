@@ -41,6 +41,12 @@
           "microphonePermission": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e3c162ef-c3ea-46f1-982e-5c265f2f60f2"
+      }
+    },
+    "owner": "art-bueno"
   }
 }
