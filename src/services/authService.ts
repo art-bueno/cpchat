@@ -27,7 +27,8 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
   if (input.photo) {
     try {
       photoUrl = await uploadImage({ target: 'profile' }, input.photo);
-    } catch {
+    } catch (error) {
+      console.warn('[cadastro] foto não enviada:', error instanceof Error ? error.message : error);
       warnings.push('Conta criada, mas a foto não pôde ser enviada. Você pode alterá-la no seu perfil.');
     }
   }
