@@ -1,0 +1,24 @@
+# Blueprint do Render (Dashboard → New → Blueprint → selecione este repositório).
+# Os segredos (sync: false) são preenchidos manualmente no painel e nunca ficam no Git.
+services:
+  - type: web
+    name: cpchat-notifications-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        sync: false
+      - key: EXPO_ACCESS_TOKEN
+        sync: false

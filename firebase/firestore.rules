@@ -1,0 +1,133 @@
+rules_version = '2';
+
+// Cloud Firestore — perfis, diretório público, grupos, conversas individuais, dispositivos.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────── helpers ─────────
+    function signedIn() { return request.auth != null; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function changedOnly(keys) { return incoming().diff(existing()).affectedKeys().hasOnly(keys); }
+    function isString(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    function isHttpsUrlOrEmpty(v) { return v is string && (v.size() == 0 || (v.size() <= 2048 && v.matches('^https://.*'))); }
+    function policies() { return ['all_group_messages', 'mentioned_members', 'direct_messages_only', 'disabled']; }
+    function directId(a, b) { return a < b ? 'dm_' + a + '_' + b : 'dm_' + b + '_' + a; }
+
+    // ───────── perfil privado ─────────
+    // Dados cadastrais: só o dono lê diretamente. Terceiros só via API, que exige conversa/grupo em comum.
+    function validProfile(uid, d) {
+      return d.keys().hasOnly(['uid', 'name', 'email', 'phoneNumber', 'birthDate', 'photoUrl', 'createdAt'])
+        && d.keys().hasAll(['uid', 'name', 'email', 'phoneNumber', 'birthDate', 'photoUrl', 'createdAt'])
+        && d.uid == uid
+        && isString(d.name, 2, 80)
+        && d.email == request.auth.token.email
+        && d.phoneNumber is string && d.phoneNumber.matches('^\\+[0-9]{10,15}$')
+        && d.birthDate is string && d.birthDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && isHttpsUrlOrEmpty(d.photoUrl)
+        && d.createdAt is int;
+    }
+
+    match /users/{uid} {
+      allow read: if isSelf(uid);
+      allow create: if isSelf(uid) && validProfile(uid, incoming());
+      allow update: if isSelf(uid) && validProfile(uid, incoming())
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if false;
+
+      // Tokens de push: privados ao dono. A API (Admin SDK) lê para enviar e desativa tokens inválidos.
+      match /devices/{deviceId} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid)
+          && incoming().keys().hasOnly(['token', 'provider', 'platform', 'enabled', 'updatedAt'])
+          && isString(incoming().token, 1, 4096)
+          && incoming().provider in ['fcm', 'expo']
+          && incoming().platform in ['android', 'ios']
+          && incoming().enabled is bool
+          && incoming().updatedAt is int;
+      }
+    }
+
+    // ───────── diretório público (nome + foto) ─────────
+    // Necessário para listar/buscar usuários. Não contém e-mail, celular nem nascimento.
+    match /userDirectory/{uid} {
+      allow read: if signedIn();
+      allow create: if isSelf(uid)
+        && incoming().keys().hasOnly(['uid', 'name', 'nameLower', 'photoUrl', 'updatedAt'])
+        && incoming().uid == uid
+        && isString(incoming().name, 2, 80)
+        && incoming().nameLower == incoming().name.lower()
+        && isHttpsUrlOrEmpty(incoming().photoUrl)
+        && incoming().updatedAt is int;
+      allow update: if isSelf(uid)
+        && changedOnly(['photoUrl', 'updatedAt'])
+        && isHttpsUrlOrEmpty(incoming().photoUrl)
+        && incoming().updatedAt is int;
+      allow delete: if false;
+    }
+
+    // ───────── grupos ─────────
+    // O limite é validado AQUI sobre o documento resultante: mesmo com escritas concorrentes,
+    // nenhuma escrita que deixe memberIds.size() > memberLimit é aceita.
+    function validGroup(groupId, d) {
+      return d.keys().hasOnly(['id', 'name', 'photoUrl', 'ownerId', 'memberIds', 'memberLimit', 'notificationPolicy', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['id', 'name', 'photoUrl', 'ownerId', 'memberIds', 'memberLimit', 'notificationPolicy', 'createdAt', 'updatedAt'])
+        && d.id == groupId
+        && isString(d.name, 1, 60)
+        && isHttpsUrlOrEmpty(d.photoUrl)
+        && d.memberLimit is int && d.memberLimit >= 2 && d.memberLimit <= 50
+        && d.memberIds is list
+        && d.memberIds.size() >= 2
+        && d.memberIds.size() <= d.memberLimit
+        && d.memberIds.toSet().size() == d.memberIds.size()
+        && d.ownerId in d.memberIds
+        && d.notificationPolicy in policies()
+        && d.createdAt is int && d.updatedAt is int;
+    }
+
+    match /groups/{groupId} {
+      allow read: if signedIn() && request.auth.uid in existing().memberIds;
+      allow create: if signedIn()
+        && incoming().ownerId == request.auth.uid
+        && validGroup(groupId, incoming());
+      allow update: if signedIn()
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && validGroup(groupId, incoming());
+      allow delete: if signedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    // ───────── conversas individuais ─────────
+    match /directConversations/{conversationId} {
+      // `resource == null` permite o get de verificação "já existe?" antes de criar.
+      allow read: if signedIn() && (resource == null || request.auth.uid in existing().participantIds);
+      allow create: if signedIn()
+        && incoming().keys().hasOnly(['id', 'type', 'participantIds', 'notificationPolicy', 'createdAt', 'updatedAt'])
+        && incoming().id == conversationId
+        && incoming().type == 'direct'
+        && incoming().participantIds is list
+        && incoming().participantIds.size() == 2
+        && request.auth.uid in incoming().participantIds
+        && incoming().participantIds[0] != incoming().participantIds[1]
+        && conversationId == directId(incoming().participantIds[0], incoming().participantIds[1])
+        && exists(/databases/$(database)/documents/userDirectory/$(incoming().participantIds[0]))
+        && exists(/databases/$(database)/documents/userDirectory/$(incoming().participantIds[1]))
+        && incoming().notificationPolicy in ['direct_messages_only', 'disabled']
+        && incoming().createdAt is int && incoming().updatedAt is int;
+      allow update: if signedIn()
+        && request.auth.uid in existing().participantIds
+        && changedOnly(['notificationPolicy', 'updatedAt'])
+        && incoming().notificationPolicy in ['direct_messages_only', 'disabled']
+        && incoming().updatedAt is int;
+      allow delete: if false;
+    }
+
+    // ───────── controle de idempotência do push (somente API/Admin SDK) ─────────
+    match /notificationDispatches/{dispatchId} {
+      allow read, write: if false;
+    }
+  }
+}

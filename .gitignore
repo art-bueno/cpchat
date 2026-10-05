@@ -39,3 +39,13 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# segredos — NUNCA versionar
+.env
+server/.env
+serviceAccountKey*.json
+firebaseAdminCredentials*.json
+*-firebase-adminsdk-*.json
+
+# API
+server/dist/

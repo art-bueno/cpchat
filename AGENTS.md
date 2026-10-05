@@ -25,9 +25,9 @@ Run lint and typecheck before declaring any task done.
 
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+- This project uses **React Navigation** (native-stack) — not Expo Router — because the assignment requires explicitly typed navigation params. Param lists live in `src/types/navigation.ts`; navigators in `src/navigation/`.
+- Screens live in `src/screens/`; keep business logic in `src/services/` and `src/hooks/`.
+- `any` is forbidden (ESLint `@typescript-eslint/no-explicit-any: error`). Firebase data enters as `unknown` and goes through `src/services/parsers.ts`.
 
 ## Building with EAS
 

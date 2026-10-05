@@ -1,0 +1,51 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "messages": {
+      "$conversationId": {
+        ".read": "auth != null && ((!$conversationId.beginsWith('dm_') && root.child('groupMembers').child($conversationId).child(auth.uid).val() === true) || ($conversationId.beginsWith('dm_') && $conversationId !== 'dm_' + auth.uid + '_' + auth.uid && ($conversationId.beginsWith('dm_' + auth.uid + '_') || $conversationId.endsWith('_' + auth.uid))))",
+        ".indexOn": ["createdAt"],
+
+        "$messageId": {
+          ".write": "auth != null && !data.exists() && ((!$conversationId.beginsWith('dm_') && root.child('groupMembers').child($conversationId).child(auth.uid).val() === true) || ($conversationId.beginsWith('dm_') && $conversationId !== 'dm_' + auth.uid + '_' + auth.uid && ($conversationId.beginsWith('dm_' + auth.uid + '_') || $conversationId.endsWith('_' + auth.uid))))",
+          ".validate": "newData.hasChildren(['id', 'conversationId', 'conversationType', 'senderId', 'text', 'target', 'createdAt'])",
+
+          "id": { ".validate": "newData.val() === $messageId" },
+          "conversationId": { ".validate": "newData.val() === $conversationId" },
+          "conversationType": {
+            ".validate": "($conversationId.beginsWith('dm_') && newData.val() === 'direct') || (!$conversationId.beginsWith('dm_') && newData.val() === 'group')"
+          },
+          "senderId": { ".validate": "newData.val() === auth.uid" },
+          "text": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000" },
+          "createdAt": { ".validate": "newData.val() === now" },
+
+          "target": {
+            ".validate": "newData.child('type').val() === 'conversation' || (newData.child('type').val() === 'member' && newData.hasChild('memberId') && !$conversationId.beginsWith('dm_'))",
+            "type": { ".validate": "newData.val() === 'conversation' || newData.val() === 'member'" },
+            "memberId": {
+              ".validate": "newData.isString() && newData.val() !== auth.uid && root.child('groupMembers').child($conversationId).child(newData.val()).val() === true"
+            },
+            "$other": { ".validate": false }
+          },
+
+          "mentionedUserIds": {
+            "$index": {
+              ".validate": "newData.isString() && newData.val() !== auth.uid && root.child('groupMembers').child($conversationId).child(newData.val()).val() === true"
+            }
+          },
+
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
+    "groupMembers": {
+      "$groupId": {
+        ".read": "auth != null && data.child(auth.uid).val() === true",
+        ".write": false
+      }
+    }
+  }
+}
