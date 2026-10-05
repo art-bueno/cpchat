@@ -1,9 +1,9 @@
 {
-  "apiKey": "COLE_AQUI_A_API_KEY_DO_APP_WEB",
-  "authDomain": "SEU-PROJETO.firebaseapp.com",
-  "databaseURL": "https://SEU-PROJETO-default-rtdb.firebaseio.com",
-  "projectId": "SEU-PROJETO",
-  "storageBucket": "SEU-PROJETO.firebasestorage.app",
-  "messagingSenderId": "000000000000",
-  "appId": "1:000000000000:web:0000000000000000000000"
+  "apiKey": "AIzaSyAp6iIt-u-EYn-mgwQtf9hx0sjQrhskT4k",
+  "authDomain": "cp5mobile-d5af7.firebaseapp.com",
+  "databaseURL": "https://cp5mobile-d5af7-default-rtdb.firebaseio.com/",
+  "projectId": "cp5mobile-d5af7",
+  "storageBucket": "cp5mobile-d5af7.firebasestorage.app",
+  "messagingSenderId": "581257270467",
+  "appId": "1:581257270467:web:b8fa72a54d23cf66dabe76"
 }
