@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "581257270467",
+    "firebase_url": "https://cp5mobile-d5af7-default-rtdb.firebaseio.com",
+    "project_id": "cp5mobile-d5af7",
+    "storage_bucket": "cp5mobile-d5af7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:581257270467:android:899e8161f0d5edefdabe76",
+        "android_client_info": {
+          "package_name": "br.com.fiap.cpchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZCO2nZENiqcJ849-oYNEBCOV-8Hcm1Ys"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
