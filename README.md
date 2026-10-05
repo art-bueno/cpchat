@@ -12,7 +12,7 @@ Trabalho da disciplina de Mobile (3ESPX), FIAP.
 
 ## Como testar
 
-- APK Android: _link adicionado após o build `preview`_
+- APK Android (81 MB): https://expo.dev/artifacts/eas/smFBPfEjgaJYWDe8iXo_B1P3K9Bkbq5IeicNfvx_YX8.apk
 - API: https://cpchat.onrender.com
 - Health check: https://cpchat.onrender.com/health
 
