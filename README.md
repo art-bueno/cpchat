@@ -4,10 +4,9 @@ Aplicativo de chat em **React Native + Expo + TypeScript** com conversas individ
 
 ## 👥 Integrantes
 
-> ⚠️ **Preencher antes da entrega** — sem nome e RM de todos os integrantes o trabalho recebe nota zero.
-
-- RM00000 — Nome Completo
-- RM00000 — Nome Completo
+- RM558396 — Arthur Bueno de Oliveira
+- RM555187 — João Vitor Carotta Ribeiro
+- RM556729 — Victor Magdaleno Marcos
 
 ---
 
