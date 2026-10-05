@@ -337,20 +337,20 @@ As regras do RTDB não conseguem ler o Firestore. Por isso:
 
 ## 📸 Prints das telas
 
-| Login | Cadastro | Conversas | Usuários |
-|---|---|---|---|
-| <img src="docs/prints/login.png" width="200"> | <img src="docs/prints/cadastro.png" width="200"> | <img src="docs/prints/conversas.png" width="200"> | <img src="docs/prints/usuarios.png" width="200"> |
-| E-mail/senha, erro de credencial | Foto, nome, celular, nascimento | Individuais e grupos identificados | Busca; o próprio usuário não aparece |
+Capturas de um Android físico (Samsung) rodando o *development build*. O botão flutuante ⚙️ é o menu de desenvolvimento do Expo e não aparece no APK `preview`.
 
-| Criação/edição de grupo | Chat em grupo | Integrantes | Perfil |
+| Login | Cadastro | Usuários | Perfil |
 |---|---|---|---|
-| <img src="docs/prints/grupo.png" width="200"> | <img src="docs/prints/chat.png" width="200"> | <img src="docs/prints/integrantes.png" width="200"> | <img src="docs/prints/perfil.png" width="200"> |
-| Limite, vagas e política de push | Autor, menção e destinatário | Aberto ao tocar na foto do grupo | Aberto ao tocar na foto do participante |
+| <img src="docs/prints/login.jpg" width="200"> | <img src="docs/prints/cadastro.jpg" width="200"> | <img src="docs/prints/usuarios.jpg" width="200"> | <img src="docs/prints/perfil.jpg" width="200"> |
+| E-mail/senha com erro de credencial tratado | Foto, nome, e-mail, celular, nascimento e confirmação de senha | Busca por nome; o próprio usuário não aparece | Aberto ao tocar na foto do participante (dados liberados pela API) |
+
+| Conversas (individual) | Conversas (grupo) | Criação de grupo | Chat |
+|---|---|---|---|
+| <img src="docs/prints/conversas.jpg" width="200"> | <img src="docs/prints/conversas-grupo.jpg" width="200"> | <img src="docs/prints/grupo.jpg" width="200"> | <img src="docs/prints/chat.jpg" width="200"> |
+| Tipo identificado pela etiqueta "Individual" e prévia da última mensagem | Etiqueta "Grupo" e quantidade de integrantes | Limite 3 → "3 de 3 integrantes · Grupo sem vagas" e política de push | Mensagem enviada e sincronizada em tempo real (RTDB) |
 
 ## 📲 Evidência de notificação recebida
 
-| Notificação com o app fechado | Conversa aberta pelo toque |
-|---|---|
-| <img src="docs/prints/push.png" width="250"> | <img src="docs/prints/push-abriu.png" width="250"> |
+<img src="docs/prints/push.jpg" width="250">
 
-Push enviado pela API (`POST /notifications/messages`) via **Firebase Cloud Messaging** para um Android físico, com o app fechado. O payload contém `conversationId` e `conversationType`; ao tocar, o app abre a conversa correspondente.
+Notificação recebida na tela bloqueada, com o app fechado: **"Arthur — Enviou uma nova mensagem."** O texto da mensagem não é exibido, para não expor conteúdo na tela bloqueada. Push enviado pela API (`POST /notifications/messages`) via **Firebase Cloud Messaging** para um Android físico. O payload contém `conversationId` e `conversationType`; ao tocar, o app abre a conversa correspondente.
