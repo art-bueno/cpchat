@@ -10,12 +10,12 @@ import {
 import { doc, writeBatch } from 'firebase/firestore';
 import type { ChatUser, LoginInput, RegisterInput, UserDirectoryEntry } from '../types/user';
 import { auth, firestore } from './firebase';
-import { storagePaths, uploadImage } from './storageService';
+import { uploadImage } from './storageService';
 
 export type RegisterResult = { warnings: string[] };
 
 /**
- * Cadastro: cria a conta (Auth) → envia a foto (Storage) → grava perfil privado e entrada pública (Firestore).
+ * Cadastro: cria a conta (Auth) → envia a foto (Cloudinary, upload assinado pela API) → grava perfil privado e entrada pública (Firestore).
  * Se o perfil não puder ser gravado, a conta recém-criada é removida para não deixar usuário "órfão".
  */
 export async function register(input: RegisterInput): Promise<RegisterResult> {
@@ -26,7 +26,7 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
   let photoUrl = '';
   if (input.photo) {
     try {
-      photoUrl = await uploadImage(storagePaths.profilePhoto(uid), input.photo);
+      photoUrl = await uploadImage({ target: 'profile' }, input.photo);
     } catch {
       warnings.push('Conta criada, mas a foto não pôde ser enviada. Você pode alterá-la no seu perfil.');
     }

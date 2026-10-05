@@ -25,5 +25,5 @@ export async function pickSquareImage(): Promise<PickImageResult> {
 
   const asset = result.canceled ? undefined : result.assets[0];
   if (!asset) return { status: 'canceled' };
-  return { status: 'picked', image: { uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg' } };
+  return { status: 'picked', image: { uri: asset.uri, mimeType: asset.mimeType ?? 'image/jpeg', fileSize: asset.fileSize ?? null } };
 }

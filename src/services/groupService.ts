@@ -20,7 +20,7 @@ import { applyGroupChanges, validateGroupName, validateMemberCount, validateMemb
 import { syncGroupMembers } from './apiClient';
 import { firestore } from './firebase';
 import { parseGroup } from './parsers';
-import { storagePaths, uploadImage } from './storageService';
+import { uploadImage } from './storageService';
 
 const groupsCollection = collection(firestore, 'groups');
 
@@ -39,7 +39,7 @@ async function syncMembersSafely(groupId: string, warnings: string[]): Promise<v
 
 async function uploadGroupPhoto(groupId: string, photo: PickedImage, warnings: string[]): Promise<void> {
   try {
-    const photoUrl = await uploadImage(storagePaths.groupPhoto(groupId), photo);
+    const photoUrl = await uploadImage({ target: 'group', groupId }, photo);
     await updateDoc(doc(firestore, 'groups', groupId), { photoUrl, updatedAt: Date.now() });
   } catch (error) {
     warnings.push(`A foto do grupo não pôde ser salva: ${getErrorMessage(error)}`);
@@ -59,7 +59,7 @@ export async function createGroup(input: CreateGroupInput): Promise<GroupMutatio
   const group: ChatGroup = {
     id: groupRef.id,
     name: input.name.trim(),
-    // A foto é enviada depois que o grupo existe: a regra do Storage confere o ownerId no Firestore.
+    // A foto é enviada depois que o grupo existe: a API confere o ownerId no Firestore antes de assinar o upload.
     photoUrl: '',
     ownerId: input.ownerId,
     memberIds,

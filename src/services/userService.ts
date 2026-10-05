@@ -14,7 +14,7 @@ import {
 import type { ChatUser, PickedImage, UserDirectoryEntry } from '../types/user';
 import { firestore } from './firebase';
 import { parseChatUser, parseDirectoryEntry } from './parsers';
-import { storagePaths, uploadImage } from './storageService';
+import { uploadImage } from './storageService';
 
 const DIRECTORY_PAGE_SIZE = 300;
 /** Limite do operador `in` do Firestore. */
@@ -85,7 +85,7 @@ export function subscribeToDirectoryEntries(
 }
 
 export async function updateOwnPhoto(uid: string, image: PickedImage): Promise<string> {
-  const photoUrl = await uploadImage(storagePaths.profilePhoto(uid), image);
+  const photoUrl = await uploadImage({ target: 'profile' }, image);
   const batch = writeBatch(firestore);
   batch.update(doc(firestore, 'users', uid), { photoUrl });
   batch.update(doc(firestore, 'userDirectory', uid), { photoUrl, updatedAt: Date.now() });

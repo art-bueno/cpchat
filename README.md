@@ -18,14 +18,14 @@ Aplicativo de chat em **React Native + Expo + TypeScript** com conversas individ
 | App | Expo SDK | **57** (`expo ~57.0.26`) |
 | App | React Native / React | 0.86 / 19.2 |
 | App | TypeScript | 6.0 (`strict` + `noUncheckedIndexedAccess`) |
-| App | Firebase JS SDK (Auth, Firestore, Realtime Database, Storage) | 12.x |
+| App | Firebase JS SDK (Auth, Firestore, Realtime Database) | 12.x |
 | App | expo-notifications, expo-image-picker, expo-dev-client | SDK 57 |
 | App | React Navigation (native-stack, parâmetros tipados) | 7.x |
 | API | Node.js + Express + TypeScript | Node 22 / Express 5 |
 | API | Firebase Admin SDK (Auth, Firestore, RTDB, **FCM**) | 14.x |
 | API | Zod (validação), Helmet, express-rate-limit | — |
 | Hospedagem API | Render (Web Service, HTTPS) | — |
-| Imagens | **Firebase Storage** | — |
+| Imagens | **Cloudinary** (plano gratuito, upload assinado pela API) | — |
 
 ---
 
@@ -37,8 +37,8 @@ Aplicativo de chat em **React Native + Expo + TypeScript** com conversas individ
 | **Realtime Database** | **Todas as mensagens** (`messages/{conversationId}/{messageId}`), listeners em tempo real e o espelho `groupMembers/{groupId}` (usado pelas regras). |
 | **Cloud Firestore** | Perfis (`users`), diretório público (`userDirectory`), grupos + integrantes + `memberLimit` + `notificationPolicy` (`groups`), conversas individuais e sua política (`directConversations`), tokens de dispositivos (`users/{uid}/devices`), controle de idempotência do push (`notificationDispatches`). |
 | **Firebase Cloud Messaging** | Entrega do push no Android (app em segundo plano/fechado). Payload contém `conversationId` e `conversationType`. |
-| **Firebase Storage** | Fotos de perfil e de grupo. No Firestore fica **apenas a URL** (nunca Base64). |
-| **API própria (Render)** | Valida o ID token, confere a mensagem no RTDB e participantes/política no Firestore, calcula destinatários e envia o push. Também sincroniza o espelho de integrantes e serve perfis com controle de acesso. |
+| **Cloudinary** | Fotos de perfil e de grupo. No Firestore fica **apenas a URL** (nunca Base64). |
+| **API própria (Render)** | Valida o ID token, confere a mensagem no RTDB e participantes/política no Firestore, calcula destinatários e envia o push. Também sincroniza o espelho de integrantes, serve perfis com controle de acesso e assina uploads de imagem. |
 
 ### Fluxo de uma mensagem
 
@@ -65,16 +65,15 @@ API: verifyIdToken → lê a mensagem no RTDB (senderId == usuário?) → lê gr
 ├── google-services.json         # Config cliente Android/FCM (adicionar — ver abaixo)
 ├── firebase/
 │   ├── firestore.rules          # Regras do Firestore
-│   ├── database.rules.json      # Regras do Realtime Database
-│   └── storage.rules            # Regras do Storage
-├── firebase.json                # Deploy das regras via Firebase CLI
+│   └── database.rules.json      # Regras do Realtime Database
+├── firebase.json / .firebaserc  # Deploy das regras via Firebase CLI
 ├── render.yaml                  # Blueprint da API no Render
 ├── src/
 │   ├── components/              # Avatar, ChatInput, ChatMessage, ConversationItem, GroupMemberItem,
 │   │                            # ImagePickerField, Loading, ErrorMessage, EmptyState, PolicySelector, ...
 │   ├── screens/                 # Login, Register, Conversations, Users, GroupForm, Chat, GroupMembers, Profile
 │   ├── services/                # firebase, authService, userService, groupService, chatService,
-│   │                            # notificationService, storageService, apiClient, parsers
+│   │                            # notificationService, storageService (Cloudinary), apiClient, parsers
 │   ├── hooks/                   # useAuth, useChat, useGroups, useConversations, useNotifications, useUsers, ...
 │   ├── contexts/                # AuthContext, NotificationContext
 │   ├── navigation/              # RootNavigator (stacks tipados) + navigationRef (abrir chat pelo push)
@@ -84,8 +83,8 @@ API: verifyIdToken → lê a mensagem no RTDB (senderId == usuário?) → lê gr
     └── src/
         ├── app.ts / index.ts
         ├── middleware/authenticate.ts
-        ├── routes/notifications.ts, groups.ts, users.ts
-        └── services/firebaseAdmin.ts, dataAccess.ts, recipientResolver.ts (+ testes), notificationSender.ts
+        ├── routes/notifications.ts, groups.ts, users.ts, uploads.ts
+        └── services/firebaseAdmin.ts, dataAccess.ts, recipientResolver.ts, notificationSender.ts, cloudinarySignature.ts (+ testes)
 ```
 
 ---
@@ -96,12 +95,11 @@ API: verifyIdToken → lê a mensagem no RTDB (senderId == usuário?) → lê gr
 2. **Authentication → Sign-in method →** habilite apenas **E-mail/senha**.
 3. **Firestore Database →** criar (modo produção).
 4. **Realtime Database →** criar (modo bloqueado).
-5. **Storage →** criar bucket (projetos novos exigem o plano **Blaze**; o uso deste trabalho fica dentro da cota gratuita).
-6. **Configurações do projeto → Seus apps:**
+5. **Configurações do projeto → Seus apps:**
    - Adicione um app **Web** e copie a configuração para [`firebaseConfig.json`](firebaseConfig.json) (este arquivo **deve** ficar no GitHub).
    - Adicione um app **Android** com o pacote `br.com.fiap.cpchat`, baixe o **`google-services.json`** e coloque na raiz do projeto (é configuração de cliente, pode ser versionado).
    - (iOS) Adicione um app iOS com o bundle `br.com.fiap.cpchat` se desejar; o push no iOS é entregue via Expo Push Service/APNs.
-7. Publique as regras:
+6. Publique as regras:
 
 ```bash
 npm install -g firebase-tools
@@ -112,21 +110,28 @@ firebase login
 ```
 
 ```bash
-firebase deploy --only firestore:rules,database,storage --project SEU-PROJECT-ID
+firebase deploy --only firestore:rules,database
 ```
 
-8. **Conta de serviço da API:** Configurações do projeto → Contas de serviço → *Gerar nova chave privada*. **Não salve no repositório**: copie `project_id`, `client_email` e `private_key` direto para as variáveis secretas do Render (abaixo) e apague o arquivo baixado.
+7. **Conta de serviço da API:** Configurações do projeto → Contas de serviço → *Gerar nova chave privada*. **Não salve no repositório**: copie `project_id`, `client_email` e `private_key` direto para as variáveis secretas do Render (abaixo) e apague o arquivo baixado.
 
 > Nenhum índice composto é necessário: as consultas usam apenas `array-contains`, `orderBy` em um campo e `where` de igualdade.
 
 ---
 
-## 🖼️ Armazenamento de fotos — Firebase Storage
+## 🖼️ Armazenamento de fotos — Cloudinary
 
-- Seleção pela galeria com `expo-image-picker` (permissão solicitada e tratada; mensagem para abrir as configurações se negada).
-- Upload (`uploadBytes`) para `users/{uid}/profile.jpg` e `groups/{groupId}/photo.jpg`; o Firestore guarda apenas a `downloadURL`.
-- Regras ([`firebase/storage.rules`](firebase/storage.rules)): somente imagens < 5 MB; foto de perfil só pelo próprio usuário; foto de grupo só pelo proprietário (conferido no Firestore via `firestore.get`).
-- Sem foto ou com erro de carregamento, o componente `Avatar` exibe uma imagem padrão (iniciais).
+Escolhemos o **Cloudinary** (plano gratuito, sem cartão) no lugar do Firebase Storage, que em projetos novos exige o plano pago Blaze.
+
+Fluxo (upload **assinado** — o `api_secret` nunca vai para o app):
+
+1. O usuário escolhe a foto com `expo-image-picker` (permissão solicitada e tratada; se negada, o app orienta a abrir as configurações).
+2. O app chama `POST /uploads/signature` na nossa API com o ID token. A API só assina se for a **própria foto de perfil** ou a foto de um **grupo do qual o usuário é proprietário** (conferido no Firestore).
+3. A assinatura fixa o destino (`cpchat/users/{uid}/profile` ou `cpchat/groups/{groupId}/photo`), os formatos aceitos (jpg/png/webp/heic) e o redimensionamento (máx. 800×800). O app envia o arquivo direto para `api.cloudinary.com`.
+4. O Cloudinary devolve a `secure_url` (HTTPS) e **somente essa URL** é gravada no Firestore. As regras do Firestore só aceitam URLs `https://res.cloudinary.com/...` — Base64 ou links arbitrários são rejeitados.
+5. Sem foto ou com erro de carregamento, o componente `Avatar` exibe uma imagem padrão (iniciais).
+
+**Configuração:** crie uma conta grátis em <https://cloudinary.com>, abra **Dashboard → API Keys** e copie *Cloud name*, *API Key* e *API Secret* para as variáveis `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` e `CLOUDINARY_API_SECRET` no Render (seção da API). Nada do Cloudinary fica no app nem no repositório.
 
 ---
 
@@ -181,6 +186,7 @@ npx expo start --dev-client
 | POST | `/notifications/messages` | Bearer ID token | Body `{ conversationId, messageId }`. Valida autor/participação, aplica a política e envia o push. Idempotente: reenvios retornam `{ "duplicate": true }`. |
 | POST | `/groups/:groupId/sync-members` | Bearer ID token | Copia `memberIds` do Firestore para `groupMembers/{groupId}` no RTDB (usado pelas regras). |
 | GET | `/users/:uid/profile` | Bearer ID token | Perfil completo somente se houver conversa individual ou grupo em comum (senão `403`). |
+| POST | `/uploads/signature` | Bearer ID token | Body `{ target: "profile" }` ou `{ target: "group", groupId }`. Devolve a assinatura de upload do Cloudinary (só para a própria foto ou grupo do qual é dono). |
 
 Verificar disponibilidade:
 
@@ -190,7 +196,7 @@ curl https://SEU-SERVICO.onrender.com/health
 
 ### Variáveis de ambiente (somente os nomes — valores apenas no Render)
 
-`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_DATABASE_URL`, `EXPO_ACCESS_TOKEN` (opcional). Veja [`server/.env.example`](server/.env.example).
+`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `FIREBASE_DATABASE_URL`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `EXPO_ACCESS_TOKEN` (opcional). Veja [`server/.env.example`](server/.env.example).
 
 ### Publicar no Render
 
@@ -271,7 +277,7 @@ Regras gerais: remetente nunca é notificado; apenas participantes atuais; token
 
 ## 🔒 Regras de segurança
 
-Arquivos versionados: [`firebase/firestore.rules`](firebase/firestore.rules), [`firebase/database.rules.json`](firebase/database.rules.json), [`firebase/storage.rules`](firebase/storage.rules).
+Arquivos versionados: [`firebase/firestore.rules`](firebase/firestore.rules) e [`firebase/database.rules.json`](firebase/database.rules.json). Uploads de imagem são autorizados pela API (assinatura Cloudinary).
 
 - Tudo exige autenticação; raiz do RTDB fechada (`.read/.write: false`).
 - **Mensagens (RTDB):** só participantes leem/escrevem. Conversa individual: participação verificada pelo id `dm_<uidA>_<uidB>`. Grupo: `groupMembers/{groupId}/{uid} === true`. `senderId === auth.uid`, `createdAt === now` (timestamp do servidor), texto 1–2000, mensagens imutáveis, destinatário/menções precisam ser integrantes.

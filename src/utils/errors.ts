@@ -49,11 +49,6 @@ const FIREBASE_MESSAGES: Partial<Record<string, string>> = {
   aborted: 'Conflito com outra alteração simultânea. Tente novamente.',
   'resource-exhausted': 'Limite de uso atingido. Tente mais tarde.',
   'deadline-exceeded': 'A operação demorou demais. Verifique sua conexão.',
-  // Storage
-  'storage/unauthorized': 'Sem permissão para enviar a imagem.',
-  'storage/canceled': 'Envio da imagem cancelado.',
-  'storage/retry-limit-exceeded': 'Falha de conexão ao enviar a imagem.',
-  'storage/quota-exceeded': 'Cota de armazenamento excedida.',
 };
 
 /** Converte qualquer erro em uma mensagem compreensível, sem expor detalhes internos. */
@@ -71,7 +66,7 @@ export function getErrorMessage(error: unknown, fallback = 'Algo deu errado. Ten
 }
 
 export function isPermissionDenied(error: unknown): boolean {
-  if (error instanceof FirebaseError) return error.code === 'permission-denied' || error.code === 'storage/unauthorized';
+  if (error instanceof FirebaseError) return error.code === 'permission-denied';
   return error instanceof Error && /permission[_ ]denied/i.test(error.message);
 }
 

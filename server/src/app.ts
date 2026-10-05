@@ -3,6 +3,7 @@ import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 import { groupsRouter } from './routes/groups.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { uploadsRouter } from './routes/uploads.js';
 import { usersRouter } from './routes/users.js';
 import { HttpError } from './utils/guards.js';
 
@@ -22,7 +23,7 @@ app.get('/health', (_req, res) => {
 app.get('/', (_req, res) => {
   res.status(200).json({
     service: 'cpchat-notifications-api',
-    endpoints: ['GET /health', 'POST /notifications/messages', 'POST /groups/:groupId/sync-members', 'GET /users/:uid/profile'],
+    endpoints: ['GET /health', 'POST /notifications/messages', 'POST /groups/:groupId/sync-members', 'GET /users/:uid/profile', 'POST /uploads/signature'],
   });
 });
 
@@ -31,6 +32,7 @@ app.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-8', le
 app.use('/notifications', notificationsRouter);
 app.use('/groups', groupsRouter);
 app.use('/users', usersRouter);
+app.use('/uploads', uploadsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Rota não encontrada.' });

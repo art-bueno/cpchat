@@ -14,6 +14,12 @@ export const config = {
     privateKey: required('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
     databaseURL: required('FIREBASE_DATABASE_URL'),
   },
+  /** Upload de fotos: o api_secret só é usado para assinar uploads, nunca enviado ao app. */
+  cloudinary: {
+    cloudName: required('CLOUDINARY_CLOUD_NAME'),
+    apiKey: required('CLOUDINARY_API_KEY'),
+    apiSecret: required('CLOUDINARY_API_SECRET'),
+  },
   /** Opcional: só necessário se "Enhanced push security" estiver ativo no projeto Expo. */
   expoAccessToken: process.env.EXPO_ACCESS_TOKEN || null,
   androidChannelId: 'messages',

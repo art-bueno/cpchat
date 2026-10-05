@@ -51,4 +51,6 @@ export type LoginInput = {
 export type PickedImage = {
   uri: string;
   mimeType: string;
+  /** Tamanho em bytes, quando o sistema informa. */
+  fileSize: number | null;
 };

@@ -65,6 +65,33 @@ export function syncGroupMembers(groupId: string): Promise<true> {
   return request('POST', `/groups/${encodeURIComponent(groupId)}/sync-members`, () => true);
 }
 
+export type UploadTarget = { target: 'profile' } | { target: 'group'; groupId: string };
+
+export type UploadSignature = {
+  cloudName: string;
+  apiKey: string;
+  signature: string;
+  /** Parâmetros assinados — devem ser enviados exatamente como recebidos. */
+  params: Record<string, string>;
+};
+
+function parseUploadSignature(body: unknown): UploadSignature | null {
+  if (!isRecord(body) || !isRecord(body.params)) return null;
+  const { cloudName, apiKey, signature } = body;
+  if (typeof cloudName !== 'string' || typeof apiKey !== 'string' || typeof signature !== 'string') return null;
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(body.params)) {
+    if (typeof value !== 'string') return null;
+    params[key] = value;
+  }
+  return { cloudName, apiKey, signature, params };
+}
+
+/** A API confere permissão (própria foto / dono do grupo) e assina o upload. O segredo do Cloudinary fica no servidor. */
+export function requestUploadSignature(target: UploadTarget): Promise<UploadSignature> {
+  return request('POST', '/uploads/signature', parseUploadSignature, target);
+}
+
 /** Perfil completo de outro usuário — a API só devolve se houver conversa ou grupo em comum. */
 export function fetchUserProfile(uid: string): Promise<UserProfileView> {
   return request('GET', `/users/${encodeURIComponent(uid)}/profile`, parseProfileView);

@@ -11,7 +11,8 @@ service cloud.firestore {
     function existing() { return resource.data; }
     function changedOnly(keys) { return incoming().diff(existing()).affectedKeys().hasOnly(keys); }
     function isString(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
-    function isHttpsUrlOrEmpty(v) { return v is string && (v.size() == 0 || (v.size() <= 2048 && v.matches('^https://.*'))); }
+    // Fotos só podem apontar para o Cloudinary (upload assinado pela API) — nada de URLs arbitrárias ou Base64.
+    function isHttpsUrlOrEmpty(v) { return v is string && (v.size() == 0 || (v.size() <= 2048 && v.matches('^https://res[.]cloudinary[.]com/.*'))); }
     function policies() { return ['all_group_messages', 'mentioned_members', 'direct_messages_only', 'disabled']; }
     function directId(a, b) { return a < b ? 'dm_' + a + '_' + b : 'dm_' + b + '_' + a; }
 

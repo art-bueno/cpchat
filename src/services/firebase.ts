@@ -3,7 +3,6 @@ import { getApp, getApps, initializeApp, type FirebaseApp, type FirebaseOptions 
 import { getAuth, getReactNativePersistence, initializeAuth, type Auth } from 'firebase/auth';
 import { getDatabase, type Database } from 'firebase/database';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import rawConfig from '../../firebaseConfig.json';
 
 type RequiredKey = 'apiKey' | 'authDomain' | 'databaseURL' | 'projectId' | 'storageBucket' | 'messagingSenderId' | 'appId';
@@ -44,4 +43,3 @@ function createAuth(): Auth {
 export const auth: Auth = createAuth();
 export const firestore: Firestore = getFirestore(app);
 export const database: Database = getDatabase(app);
-export const storage: FirebaseStorage = getStorage(app);
