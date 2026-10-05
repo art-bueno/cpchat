@@ -10,6 +10,24 @@ Aplicativo de chat em **React Native + Expo + TypeScript** com conversas individ
 
 ---
 
+## 🚀 Como testar (correção)
+
+| O quê | Onde |
+|---|---|
+| **APK Android** (instala direto, não precisa de computador nem do Expo Go) | _link adicionado após o build `preview`_ |
+| **API online** | <https://cpchat.onrender.com> |
+| **Health check** | <https://cpchat.onrender.com/health> → `{"status":"ok"}` |
+| **Repositório** | <https://github.com/art-bueno/cpchat> |
+
+1. Instale o APK em um **Android físico** (permita "instalar apps desconhecidos" se solicitado).
+2. Crie uma conta (nome, e-mail, senha, celular, data de nascimento e foto) e **permita as notificações**.
+3. Para testar o push, use uma segunda conta em outro aparelho: envie uma mensagem com o app do destinatário **fechado** — a notificação chega e, ao tocar nela, abre a conversa correspondente.
+4. Para os grupos, crie um grupo, defina o limite e a política de notificação na tela do grupo (veja [Política de notificações](#-política-de-notificações)).
+
+> A API fica no plano gratuito do Render e é mantida ativa por um monitor (UptimeRobot) que chama `/health` a cada 5 minutos.
+
+---
+
 ## 🧰 Tecnologias
 
 | Camada | Tecnologia | Versão |
@@ -112,7 +130,16 @@ firebase login
 firebase deploy --only firestore:rules,database
 ```
 
-7. **Conta de serviço da API:** Configurações do projeto → Contas de serviço → *Gerar nova chave privada*. **Não salve no repositório**: copie `project_id`, `client_email` e `private_key` direto para as variáveis secretas do Render (abaixo) e apague o arquivo baixado.
+7. **Conta de serviço da API (permissões mínimas):** no Google Cloud Console → IAM → Contas de serviço, criamos a conta dedicada `cpchat-api` (em vez da conta padrão `firebase-adminsdk`, que tem permissões amplas) somente com os papéis necessários:
+
+   | Papel | Uso na API |
+   |---|---|
+   | Firebase Authentication Viewer | validar o ID token (`verifyIdToken`) |
+   | Cloud Datastore User | ler/gravar no Firestore (grupos, perfis, tokens, idempotência) |
+   | Firebase Realtime Database Admin | ler mensagens e gravar o espelho `groupMembers` |
+   | Firebase Cloud Messaging API Admin | enviar o push pelo FCM |
+
+   A chave JSON **não fica no repositório**: `project_id`, `client_email` e `private_key` foram colados direto nas variáveis secretas do Render e o arquivo foi apagado.
 
 > Nenhum índice composto é necessário: as consultas usam apenas `array-contains`, `orderBy` em um campo e `where` de igualdade.
 
@@ -168,7 +195,7 @@ Instale o APK gerado no **aparelho físico** e rode:
 npx expo start --dev-client
 ```
 
-**iOS (adicional):** requer conta Apple Developer. `eas build --profile development --platform ios` configura a chave de push (APNs) nas credenciais do EAS; `eas init` grava o `projectId` usado para gerar o Expo push token.
+**iOS:** o código já suporta iOS — o app registra um Expo push token (`provider: "expo"`) e a API envia pelo Expo Push Service, que entrega via APNs. Porém, gerar um build iOS para aparelho físico e habilitar push exige uma **conta Apple Developer (US$ 99/ano)**, que a equipe não possui. Por isso **o push foi validado em Android físico**. Com a conta, basta rodar `eas build --profile development --platform ios`: o EAS cria a chave APNs automaticamente e o `projectId` já está no `app.json`.
 
 ---
 
@@ -310,18 +337,20 @@ As regras do RTDB não conseguem ler o Firestore. Por isso:
 
 ## 📸 Prints das telas
 
-> Adicionar em `docs/prints/` e referenciar aqui.
-
 | Login | Cadastro | Conversas | Usuários |
 |---|---|---|---|
-| ![](docs/prints/login.png) | ![](docs/prints/cadastro.png) | ![](docs/prints/conversas.png) | ![](docs/prints/usuarios.png) |
+| <img src="docs/prints/login.png" width="200"> | <img src="docs/prints/cadastro.png" width="200"> | <img src="docs/prints/conversas.png" width="200"> | <img src="docs/prints/usuarios.png" width="200"> |
+| E-mail/senha, erro de credencial | Foto, nome, celular, nascimento | Individuais e grupos identificados | Busca; o próprio usuário não aparece |
 
-| Grupo | Chat | Integrantes | Perfil |
+| Criação/edição de grupo | Chat em grupo | Integrantes | Perfil |
 |---|---|---|---|
-| ![](docs/prints/grupo.png) | ![](docs/prints/chat.png) | ![](docs/prints/integrantes.png) | ![](docs/prints/perfil.png) |
+| <img src="docs/prints/grupo.png" width="200"> | <img src="docs/prints/chat.png" width="200"> | <img src="docs/prints/integrantes.png" width="200"> | <img src="docs/prints/perfil.png" width="200"> |
+| Limite, vagas e política de push | Autor, menção e destinatário | Aberto ao tocar na foto do grupo | Aberto ao tocar na foto do participante |
 
 ## 📲 Evidência de notificação recebida
 
-> Adicionar print/vídeo da notificação recebida com o app fechado e da conversa aberta pelo toque: `docs/prints/push.png`.
+| Notificação com o app fechado | Conversa aberta pelo toque |
+|---|---|
+| <img src="docs/prints/push.png" width="250"> | <img src="docs/prints/push-abriu.png" width="250"> |
 
-![](docs/prints/push.png)
+Push enviado pela API (`POST /notifications/messages`) via **Firebase Cloud Messaging** para um Android físico, com o app fechado. O payload contém `conversationId` e `conversationType`; ao tocar, o app abre a conversa correspondente.
